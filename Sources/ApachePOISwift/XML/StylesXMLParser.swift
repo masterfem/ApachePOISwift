@@ -46,6 +46,7 @@ class StylesXMLParser: NSObject, XMLParserDelegate {
     // Cell style (cellXfs) parsing
     private var currentCellStyle: CellStyle?
     private var cellStyleIndex = 0
+    private var inCellXfs = false  // Track if we're in cellXfs vs cellStyleXfs
 
     // Alignment parsing
     private var parsingAlignment = false
@@ -60,6 +61,7 @@ class StylesXMLParser: NSObject, XMLParserDelegate {
         fillIndex = 0
         borderIndex = 0
         cellStyleIndex = 0
+        inCellXfs = false
 
         let parser = XMLParser(data: data)
         parser.delegate = self
@@ -201,10 +203,15 @@ class StylesXMLParser: NSObject, XMLParserDelegate {
                 numberFormats.append(NumberFormat(formatId: id, formatCode: formatCode))
             }
 
+        // Track when we enter cellXfs section
+        case "cellXfs":
+            inCellXfs = true
+            cellStyleIndex = 0  // Reset counter when entering cellXfs
+
         // Cell style (cellXfs) elements
         case "xf":
-            // Check if we're in cellXfs section (not cellStyleXfs)
-            if parser.lineNumber > 0 { // We're parsing actual content
+            // Only process if we're in cellXfs section (not cellStyleXfs)
+            if inCellXfs {
                 var fontId: Int?
                 var fillId: Int?
                 var borderId: Int?
@@ -346,6 +353,10 @@ class StylesXMLParser: NSObject, XMLParserDelegate {
         case "numFmts":
             // End of number formats section
             stylesData.numberFormats = numberFormats
+
+        case "cellXfs":
+            // End of cellXfs section
+            inCellXfs = false
 
         case "xf":
             if let cellStyle = currentCellStyle {

@@ -37,6 +37,7 @@ public struct Font {
     /// Character set
     public var charset: Int?
 
+    /// Public initializer for creating fonts
     public init(
         name: String? = nil,
         size: Double? = nil,

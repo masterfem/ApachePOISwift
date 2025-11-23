@@ -217,6 +217,173 @@ public class ExcelCell {
         sheet?.markAsModified()
     }
 
+    // MARK: - Style Creation (Phase 4B)
+
+    /// Apply a font to this cell
+    /// - Parameter font: Font to apply
+    public func applyFont(_ font: Font) {
+        guard let workbook = workbook else { return }
+
+        let fontId = workbook.findOrCreateFont(font)
+
+        // Get current style components
+        let currentStyle = style
+        let fillId = currentStyle?.fillId
+        let borderId = currentStyle?.borderId
+        let numberFormatId = currentStyle?.numberFormatId
+
+        // Create new cell style with new font
+        let styleIndex = workbook.findOrCreateCellStyle(
+            fontId: fontId,
+            fillId: fillId,
+            borderId: borderId,
+            numberFormatId: numberFormatId
+        )
+
+        setStyleIndex(styleIndex)
+    }
+
+    /// Apply a fill (background) to this cell
+    /// - Parameter fill: Fill to apply
+    public func applyFill(_ fill: Fill) {
+        guard let workbook = workbook else { return }
+
+        let fillId = workbook.findOrCreateFill(fill)
+
+        // Get current style components
+        let currentStyle = style
+        let fontId = currentStyle?.fontId
+        let borderId = currentStyle?.borderId
+        let numberFormatId = currentStyle?.numberFormatId
+
+        // Create new cell style with new fill
+        let styleIndex = workbook.findOrCreateCellStyle(
+            fontId: fontId,
+            fillId: fillId,
+            borderId: borderId,
+            numberFormatId: numberFormatId
+        )
+
+        setStyleIndex(styleIndex)
+    }
+
+    /// Apply a border to this cell
+    /// - Parameter border: Border to apply
+    public func applyBorder(_ border: Border) {
+        guard let workbook = workbook else { return }
+
+        let borderId = workbook.findOrCreateBorder(border)
+
+        // Get current style components
+        let currentStyle = style
+        let fontId = currentStyle?.fontId
+        let fillId = currentStyle?.fillId
+        let numberFormatId = currentStyle?.numberFormatId
+
+        // Create new cell style with new border
+        let styleIndex = workbook.findOrCreateCellStyle(
+            fontId: fontId,
+            fillId: fillId,
+            borderId: borderId,
+            numberFormatId: numberFormatId
+        )
+
+        setStyleIndex(styleIndex)
+    }
+
+    /// Apply a number format to this cell
+    /// - Parameter numberFormat: Number format to apply
+    public func applyNumberFormat(_ numberFormat: NumberFormat) {
+        guard let workbook = workbook else { return }
+
+        // Get current style components
+        let currentStyle = style
+        let fontId = currentStyle?.fontId
+        let fillId = currentStyle?.fillId
+        let borderId = currentStyle?.borderId
+
+        // Create new cell style with new number format
+        let styleIndex = workbook.findOrCreateCellStyle(
+            fontId: fontId,
+            fillId: fillId,
+            borderId: borderId,
+            numberFormatId: numberFormat.formatId
+        )
+
+        setStyleIndex(styleIndex)
+    }
+
+    /// Apply complete style to this cell
+    /// - Parameters:
+    ///   - font: Font (optional)
+    ///   - fill: Fill (optional)
+    ///   - border: Border (optional)
+    ///   - numberFormat: Number format (optional)
+    ///   - horizontalAlignment: Horizontal alignment (optional)
+    ///   - verticalAlignment: Vertical alignment (optional)
+    ///   - wrapText: Wrap text flag
+    public func applyStyle(
+        font: Font? = nil,
+        fill: Fill? = nil,
+        border: Border? = nil,
+        numberFormat: NumberFormat? = nil,
+        horizontalAlignment: HorizontalAlignment? = nil,
+        verticalAlignment: VerticalAlignment? = nil,
+        wrapText: Bool = false
+    ) {
+        guard let workbook = workbook else { return }
+
+        let fontId = font.map { workbook.findOrCreateFont($0) }
+        let fillId = fill.map { workbook.findOrCreateFill($0) }
+        let borderId = border.map { workbook.findOrCreateBorder($0) }
+        let numberFormatId = numberFormat?.formatId
+
+        let styleIndex = workbook.findOrCreateCellStyle(
+            fontId: fontId,
+            fillId: fillId,
+            borderId: borderId,
+            numberFormatId: numberFormatId,
+            horizontalAlignment: horizontalAlignment,
+            verticalAlignment: verticalAlignment,
+            wrapText: wrapText
+        )
+
+        setStyleIndex(styleIndex)
+    }
+
+    // MARK: - Style Helpers
+
+    /// Make this cell's text bold
+    public func makeBold() {
+        let currentFont = font ?? Font(name: "Calibri", size: 11)
+        var newFont = currentFont
+        newFont.bold = true
+        applyFont(newFont)
+    }
+
+    /// Make this cell's text italic
+    public func makeItalic() {
+        let currentFont = font ?? Font(name: "Calibri", size: 11)
+        var newFont = currentFont
+        newFont.italic = true
+        applyFont(newFont)
+    }
+
+    /// Set background color for this cell
+    /// - Parameter color: Color in ARGB hex format (e.g., "FFFF0000" for red)
+    public func setBackgroundColor(_ color: String) {
+        applyFill(Fill(patternType: .solid, foregroundColor: color))
+    }
+
+    /// Set border around this cell
+    /// - Parameters:
+    ///   - style: Border style
+    ///   - color: Border color in ARGB hex format (optional)
+    public func setBorder(style: BorderStyle, color: String? = nil) {
+        let edge = BorderEdge(style: style, color: color)
+        applyBorder(Border(left: edge, right: edge, top: edge, bottom: edge))
+    }
+
     // MARK: - Value Modification
 
     /// Set a string value

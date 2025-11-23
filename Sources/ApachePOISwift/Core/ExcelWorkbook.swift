@@ -25,6 +25,9 @@ public class ExcelWorkbook {
     /// Style data (fonts, fills, borders, number formats, cell styles)
     internal var stylesData: StylesData?
 
+    /// Whether styles have been modified and need to be written
+    private var stylesModified: Bool = false
+
     /// Whether the workbook contains VBA macros (.xlsm)
     public private(set) var hasVBAMacros: Bool = false
 
@@ -164,6 +167,151 @@ public class ExcelWorkbook {
         isModified = true
     }
 
+    // MARK: - Style Support (Phase 4B)
+
+    /// Ensure styles data exists (create if needed)
+    private func ensureStylesData() {
+        if stylesData == nil {
+            // Create minimal default styles only if NO styles exist
+            stylesData = StylesData()
+            // Add default font, fill, border
+            stylesData?.fonts.append(Font(name: "Calibri", size: 11))
+            stylesData?.fills.append(Fill(patternType: .none))
+            stylesData?.fills.append(Fill(patternType: .gray125))
+            stylesData?.borders.append(Border())
+            // Add default cell style
+            stylesData?.cellStyles.append(CellStyle(
+                index: 0,
+                fontId: 0,
+                fillId: 0,
+                borderId: 0,
+                numberFormatId: 0
+            ))
+        }
+        // If styles exist, don't add defaults - just use existing
+    }
+
+    /// Find or create a font in the style table
+    /// - Parameter font: Font to find or create
+    /// - Returns: Index of the font in the fonts array
+    internal func findOrCreateFont(_ font: Font) -> Int {
+        ensureStylesData()
+        guard var styles = stylesData else { return 0 }
+
+        // Try to find existing font
+        if let index = styles.fonts.firstIndex(where: { $0 == font }) {
+            return index
+        }
+
+        // Create new font
+        let index = styles.fonts.count
+        styles.fonts.append(font)
+        stylesData = styles
+        stylesModified = true
+        return index
+    }
+
+    /// Find or create a fill in the style table
+    /// - Parameter fill: Fill to find or create
+    /// - Returns: Index of the fill in the fills array
+    internal func findOrCreateFill(_ fill: Fill) -> Int {
+        ensureStylesData()
+        guard var styles = stylesData else { return 0 }
+
+        // Try to find existing fill
+        if let index = styles.fills.firstIndex(where: { $0 == fill }) {
+            return index
+        }
+
+        // Create new fill
+        let index = styles.fills.count
+        styles.fills.append(fill)
+        stylesData = styles
+        stylesModified = true
+        return index
+    }
+
+    /// Find or create a border in the style table
+    /// - Parameter border: Border to find or create
+    /// - Returns: Index of the border in the borders array
+    internal func findOrCreateBorder(_ border: Border) -> Int {
+        ensureStylesData()
+        guard var styles = stylesData else { return 0 }
+
+        // Try to find existing border
+        if let index = styles.borders.firstIndex(where: { $0 == border }) {
+            return index
+        }
+
+        // Create new border
+        let index = styles.borders.count
+        styles.borders.append(border)
+        stylesData = styles
+        stylesModified = true
+        return index
+    }
+
+    /// Find or create a complete cell style
+    /// - Parameters:
+    ///   - fontId: Font index (optional)
+    ///   - fillId: Fill index (optional)
+    ///   - borderId: Border index (optional)
+    ///   - numberFormatId: Number format index (optional)
+    ///   - horizontalAlignment: Horizontal alignment (optional)
+    ///   - verticalAlignment: Vertical alignment (optional)
+    ///   - wrapText: Wrap text flag
+    /// - Returns: Index of the cell style
+    internal func findOrCreateCellStyle(
+        fontId: Int? = nil,
+        fillId: Int? = nil,
+        borderId: Int? = nil,
+        numberFormatId: Int? = nil,
+        horizontalAlignment: HorizontalAlignment? = nil,
+        verticalAlignment: VerticalAlignment? = nil,
+        wrapText: Bool = false
+    ) -> Int {
+        ensureStylesData()
+        guard var styles = stylesData else { return 0 }
+
+        // Try to find existing cell style
+        let matchingStyle = styles.cellStyles.firstIndex { style in
+            style.fontId == fontId &&
+            style.fillId == fillId &&
+            style.borderId == borderId &&
+            style.numberFormatId == numberFormatId &&
+            style.horizontalAlignment == horizontalAlignment &&
+            style.verticalAlignment == verticalAlignment &&
+            style.wrapText == wrapText
+        }
+
+        if let index = matchingStyle {
+            return index
+        }
+
+        // Create new cell style
+        let index = styles.cellStyles.count
+        let newStyle = CellStyle(
+            index: index,
+            fontId: fontId,
+            fillId: fillId,
+            borderId: borderId,
+            numberFormatId: numberFormatId,
+            horizontalAlignment: horizontalAlignment,
+            verticalAlignment: verticalAlignment,
+            wrapText: wrapText,
+            applyFont: fontId != nil,
+            applyFill: fillId != nil,
+            applyBorder: borderId != nil,
+            applyNumberFormat: numberFormatId != nil,
+            applyAlignment: horizontalAlignment != nil || verticalAlignment != nil || wrapText
+        )
+
+        styles.cellStyles.append(newStyle)
+        stylesData = styles
+        stylesModified = true
+        return index
+    }
+
     /// Save the workbook to a new file
     /// - Parameter url: Destination URL for the saved file
     /// - Throws: ExcelError if saving fails
@@ -179,6 +327,11 @@ public class ExcelWorkbook {
             }
         }
 
+        // Write modified styles back to XML (Phase 4B)
+        if stylesModified, let styles = stylesData {
+            try writeStyles(styles, to: extractedDir)
+        }
+
         // Create new archive from extracted directory
         // Note: This must happen before deinit cleans up extractedDirectory
         try ZIPHandler.createArchive(from: extractedDir, to: url)
@@ -188,6 +341,15 @@ public class ExcelWorkbook {
             sheet.isModified = false
         }
         isModified = false
+        stylesModified = false
+    }
+
+    /// Write styles.xml file (Phase 4B)
+    private func writeStyles(_ styles: StylesData, to directory: URL) throws {
+        let stylesURL = directory.appendingPathComponent("xl/styles.xml")
+        let writer = StylesXMLWriter()
+        let xmlContent = writer.generateXML(stylesData: styles)
+        try xmlContent.write(to: stylesURL, atomically: true, encoding: .utf8)
     }
 
     /// Write a sheet's XML file
