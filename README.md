@@ -7,24 +7,30 @@ A pure Swift library for reading and writing Excel .xlsx/.xlsm files with VBA ma
 **Phase 1**: ✅ **COMPLETE** - Foundation (Reading Excel files)
 **Phase 2**: ✅ **COMPLETE** - Write Support (Modifying and saving)
 **Phase 3**: ✅ **COMPLETE** - Macro Preservation
-**Next Phase**: Phase 4 - Styles & Formatting
+**Phase 4**: ✅ **COMPLETE** - Styles & Formatting
+**Next Phase**: Phase 5 - Advanced Formulas
 **License**: Apache 2.0
 
-### What Works Now (Phases 1-3)
+### What Works Now (Phases 1-4)
 - ✅ Open .xlsx and .xlsm files
 - ✅ Read cell values (strings, numbers, booleans, formulas, dates)
 - ✅ **Modify cell values** (strings, numbers, booleans, formulas)
 - ✅ **Save workbooks** to .xlsx/.xlsm files
 - ✅ **Preserve VBA macros** during save operations
+- ✅ **Read cell styles** (fonts, fills, borders, number formats)
+- ✅ **Preserve cell styles** during save operations
+- ✅ **Copy styles** between cells
 - ✅ Access sheets by index or name
 - ✅ Parse shared strings and inline strings
-- ✅ Handle large files (tested with 3.2MB, 26-sheet workbooks)
+- ✅ Handle large files (tested with 3.2MB, 26-sheet workbooks with complex styling)
 - ✅ **Full round-trip compatibility** (save → reload → verify)
 
 ## 📚 Documentation
 
 - **[Examples/BasicReadExample.swift](./Examples/BasicReadExample.swift)** - 9 practical code examples
+- **[Examples/StyleExample.swift](./Examples/StyleExample.swift)** - 6 style manipulation examples
 - **[Integration Tests](./Tests/ApachePOISwiftTests/IntegrationTests.swift)** - Real-world usage examples
+- **[Style Tests](./Tests/ApachePOISwiftTests/StyleTests.swift)** - Style reading and manipulation tests
 
 ### API Overview
 
@@ -61,7 +67,24 @@ cell.setValue(.number(42.5))
 cell.setValue(.boolean(true))
 cell.setValue(.formula("=SUM(A1:A10)"))
 
-// Save workbook
+// Read styles (Phase 4)
+if let font = cell.font {
+    print("Font: \(font.name ?? "unknown") \(font.size ?? 0)pt")
+    print("Bold: \(font.bold), Italic: \(font.italic)")
+}
+
+if let fill = cell.fill {
+    print("Background: \(fill.patternType.rawValue)")
+    if let color = fill.foregroundColor {
+        print("Color: \(color)")
+    }
+}
+
+// Copy style to another cell
+let targetCell = try sheet.cell("B2")
+targetCell.setStyleIndex(cell.styleIndex)
+
+// Save workbook (styles are automatically preserved)
 try workbook.save(to: outputURL)
 ```
 
@@ -141,11 +164,12 @@ swift test
 ```
 
 Current test coverage:
-- ✅ **27 tests passing** (all green!)
+- ✅ **35 tests passing** (all green!)
 - ✅ Unit tests for cell reference parsing
-- ✅ Integration tests with real 3.2MB Excel file (26 sheets, VBA macros)
+- ✅ Integration tests with real 3.2MB Excel file (26 sheets, VBA macros, complex styling)
 - ✅ Write tests (modify, save, reload, verify)
 - ✅ Macro preservation tests
+- ✅ Style reading and manipulation tests
 - ✅ Inline string round-trip tests
 - ✅ Error handling tests
 
@@ -154,9 +178,9 @@ Current test coverage:
 - [x] **Phase 1: Foundation** - Read .xlsx/.xlsm files ✅ **COMPLETE**
 - [x] **Phase 2: Write Support** - Modify cells and save files ✅ **COMPLETE**
 - [x] **Phase 3: Macro Preservation** - Save .xlsm with VBA intact ✅ **COMPLETE**
-- [ ] **Phase 4: Styles & Formatting** - Fonts, colors, borders (Next)
-- [ ] **Phase 5: Formulas** - Write formulas, optional evaluation
-- [ ] **Phase 6: Advanced Features** - Charts, conditional formatting
+- [x] **Phase 4: Styles & Formatting** - Read/preserve fonts, colors, borders ✅ **COMPLETE**
+- [ ] **Phase 5: Advanced Formulas** - Write formulas, optional evaluation (Next)
+- [ ] **Phase 6: Advanced Features** - Charts, conditional formatting, data validation
 
 ## 🤝 Contributing
 
@@ -182,4 +206,4 @@ Inspired by [Apache POI](https://poi.apache.org/) - the industry-standard Java l
 ---
 
 **Created**: November 22, 2024
-**Status**: Phases 1-3 Complete (Read/Write/Macros) - Phase 4 Next (Styles)
+**Status**: Phases 1-4 Complete (Read/Write/Macros/Styles) - Phase 5 Next (Advanced Formulas)

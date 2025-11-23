@@ -22,6 +22,9 @@ public class ExcelWorkbook {
     /// Shared strings table (indexed strings used across the workbook)
     internal var sharedStrings: [String] = []
 
+    /// Style data (fonts, fills, borders, number formats, cell styles)
+    internal var stylesData: StylesData?
+
     /// Whether the workbook contains VBA macros (.xlsm)
     public private(set) var hasVBAMacros: Bool = false
 
@@ -70,7 +73,15 @@ public class ExcelWorkbook {
             sharedStrings = try parser.parse(data: data)
         }
 
-        // 4. Parse workbook.xml to get sheet list
+        // 4. Parse styles (if exists)
+        let stylesURL = extractedDir.appendingPathComponent("xl/styles.xml")
+        if FileManager.default.fileExists(atPath: stylesURL.path) {
+            let data = try Data(contentsOf: stylesURL)
+            let parser = StylesXMLParser()
+            stylesData = try parser.parse(data: data)
+        }
+
+        // 5. Parse workbook.xml to get sheet list
         let workbookURL = extractedDir.appendingPathComponent("xl/workbook.xml")
         guard FileManager.default.fileExists(atPath: workbookURL.path) else {
             throw ExcelError.invalidWorkbookStructure("Missing xl/workbook.xml")
@@ -84,7 +95,7 @@ public class ExcelWorkbook {
             throw ExcelError.invalidWorkbookStructure("No sheets found in workbook")
         }
 
-        // 5. Parse each sheet
+        // 6. Parse each sheet
         for (index, sheetInfo) in sheetInfos.enumerated() {
             let sheetURL = extractedDir.appendingPathComponent("xl/worksheets/sheet\(index + 1).xml")
 
@@ -250,8 +261,8 @@ public class ExcelWorkbook {
     private func generateCellXML(for cell: ExcelCell) throws -> String {
         let cellData = cell.getCellData()
 
-        // Skip empty cells
-        if cellData.value == nil && cellData.formula == nil {
+        // Skip truly empty cells (no value, formula, or style)
+        if cellData.value == nil && cellData.formula == nil && cellData.styleIndex == nil {
             return ""
         }
 
@@ -260,6 +271,11 @@ public class ExcelWorkbook {
         // Add type attribute if present
         if let type = cellData.type {
             cellXML += " t=\"\(type.rawValue)\""
+        }
+
+        // Add style attribute if present
+        if let styleIndex = cellData.styleIndex {
+            cellXML += " s=\"\(styleIndex)\""
         }
 
         cellXML += ">"

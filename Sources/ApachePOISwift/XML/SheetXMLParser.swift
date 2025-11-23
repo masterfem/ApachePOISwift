@@ -14,6 +14,7 @@ struct CellData {
     let type: CellType?         // Cell type (string, number, etc.)
     let value: String?          // Cell value
     let formula: String?        // Cell formula (if any)
+    let styleIndex: Int?        // Style index (references cellXfs in styles.xml)
 }
 
 /// Parses Excel worksheet XML files (sheet1.xml, sheet2.xml, etc.)
@@ -23,6 +24,7 @@ class SheetXMLParser: NSObject, XMLParserDelegate {
     private var currentCellType: CellType?
     private var currentValue: String?
     private var currentFormula: String?
+    private var currentStyleIndex: Int?
     private var currentElement = ""
     private var currentText = ""
     private var isParsingInlineString = false
@@ -37,6 +39,7 @@ class SheetXMLParser: NSObject, XMLParserDelegate {
         currentCellType = nil
         currentValue = nil
         currentFormula = nil
+        currentStyleIndex = nil
         currentElement = ""
         currentText = ""
 
@@ -65,9 +68,10 @@ class SheetXMLParser: NSObject, XMLParserDelegate {
         currentElement = elementName
 
         if elementName == "c" {
-            // Cell element: <c r="A1" t="s">
+            // Cell element: <c r="A1" t="s" s="5">
             currentCellReference = attributeDict["r"] ?? ""
             currentCellType = attributeDict["t"].flatMap { CellType(rawValue: $0) }
+            currentStyleIndex = attributeDict["s"].flatMap { Int($0) }
             currentValue = nil
             currentFormula = nil
             currentText = ""
@@ -114,7 +118,8 @@ class SheetXMLParser: NSObject, XMLParserDelegate {
                     reference: currentCellReference,
                     type: currentCellType,
                     value: currentValue,
-                    formula: currentFormula
+                    formula: currentFormula,
+                    styleIndex: currentStyleIndex
                 )
                 cells[currentCellReference] = cellData
             }
@@ -124,6 +129,7 @@ class SheetXMLParser: NSObject, XMLParserDelegate {
             currentCellType = nil
             currentValue = nil
             currentFormula = nil
+            currentStyleIndex = nil
         }
     }
 

@@ -136,6 +136,89 @@ public class ExcelCell {
         sheet?.markAsModified()
     }
 
+    // MARK: - Style Support
+
+    /// Get the style index for this cell
+    public var styleIndex: Int? {
+        return cellData.styleIndex
+    }
+
+    /// Get the cell style (if available)
+    public var style: CellStyle? {
+        guard let styleIndex = cellData.styleIndex,
+              let stylesData = workbook?.stylesData,
+              styleIndex >= 0 && styleIndex < stylesData.cellStyles.count else {
+            return nil
+        }
+        return stylesData.cellStyles[styleIndex]
+    }
+
+    /// Get the font for this cell
+    public var font: Font? {
+        guard let style = style,
+              let fontId = style.fontId,
+              let stylesData = workbook?.stylesData,
+              fontId >= 0 && fontId < stylesData.fonts.count else {
+            return nil
+        }
+        return stylesData.fonts[fontId]
+    }
+
+    /// Get the fill for this cell
+    public var fill: Fill? {
+        guard let style = style,
+              let fillId = style.fillId,
+              let stylesData = workbook?.stylesData,
+              fillId >= 0 && fillId < stylesData.fills.count else {
+            return nil
+        }
+        return stylesData.fills[fillId]
+    }
+
+    /// Get the border for this cell
+    public var border: Border? {
+        guard let style = style,
+              let borderId = style.borderId,
+              let stylesData = workbook?.stylesData,
+              borderId >= 0 && borderId < stylesData.borders.count else {
+            return nil
+        }
+        return stylesData.borders[borderId]
+    }
+
+    /// Get the number format for this cell
+    public var numberFormat: NumberFormat? {
+        guard let style = style,
+              let numFmtId = style.numberFormatId else {
+            return nil
+        }
+
+        // Check custom formats first
+        if let stylesData = workbook?.stylesData {
+            if let customFormat = stylesData.numberFormats.first(where: { $0.formatId == numFmtId }) {
+                return customFormat
+            }
+        }
+
+        // Return built-in format
+        return NumberFormat(formatId: numFmtId)
+    }
+
+    /// Set the style index for this cell
+    public func setStyleIndex(_ index: Int?) {
+        cellData = CellData(
+            reference: reference,
+            type: cellData.type,
+            value: cellData.value,
+            formula: cellData.formula,
+            styleIndex: index
+        )
+        isModified = true
+        sheet?.markAsModified()
+    }
+
+    // MARK: - Value Modification
+
     /// Set a string value
     private func setStringValue(_ text: String) {
         // For Phase 2, we'll use inline strings (simpler than managing shared strings)
@@ -144,7 +227,8 @@ public class ExcelCell {
             reference: reference,
             type: .inlineString,
             value: text,
-            formula: nil
+            formula: nil,
+            styleIndex: cellData.styleIndex  // Preserve existing style
         )
     }
 
@@ -154,7 +238,8 @@ public class ExcelCell {
             reference: reference,
             type: .number,
             value: String(number),
-            formula: nil
+            formula: nil,
+            styleIndex: cellData.styleIndex  // Preserve existing style
         )
     }
 
@@ -164,7 +249,8 @@ public class ExcelCell {
             reference: reference,
             type: .boolean,
             value: bool ? "1" : "0",
-            formula: nil
+            formula: nil,
+            styleIndex: cellData.styleIndex  // Preserve existing style
         )
     }
 
@@ -174,7 +260,8 @@ public class ExcelCell {
             reference: reference,
             type: nil,  // Formulas don't have a type attribute
             value: nil,  // Value will be calculated by Excel
-            formula: formula
+            formula: formula,
+            styleIndex: cellData.styleIndex  // Preserve existing style
         )
     }
 
@@ -184,7 +271,8 @@ public class ExcelCell {
             reference: reference,
             type: nil,
             value: nil,
-            formula: nil
+            formula: nil,
+            styleIndex: cellData.styleIndex  // Preserve existing style
         )
     }
 

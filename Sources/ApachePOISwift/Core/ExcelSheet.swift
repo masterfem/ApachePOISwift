@@ -53,7 +53,8 @@ public class ExcelSheet {
             reference: reference,
             type: nil,
             value: nil,
-            formula: nil
+            formula: nil,
+            styleIndex: nil
         )
 
         let cell = ExcelCell(reference: reference, cellData: cellData, workbook: workbook, sheet: self)
