@@ -19,10 +19,17 @@ public class ExcelCell {
     /// Reference to parent workbook for shared strings lookup
     private weak var workbook: ExcelWorkbook?
 
-    init(reference: String, cellData: CellData, workbook: ExcelWorkbook?) {
+    /// Reference to parent sheet for tracking modifications
+    private weak var sheet: ExcelSheet?
+
+    /// Whether this cell has been modified
+    internal var isModified: Bool = false
+
+    init(reference: String, cellData: CellData, workbook: ExcelWorkbook?, sheet: ExcelSheet? = nil) {
         self.reference = reference
         self.cellData = cellData
         self.workbook = workbook
+        self.sheet = sheet
     }
 
     /// The value of the cell
@@ -96,6 +103,102 @@ public class ExcelCell {
     /// Get the cell reference as a CellReference object
     public var cellReference: CellReference? {
         return try? CellReference(reference)
+    }
+
+    // MARK: - Write Support (Phase 2)
+
+    /// Set the cell value
+    /// - Parameter newValue: The new value to set
+    public func setValue(_ newValue: CellValue) {
+        switch newValue {
+        case .string(let text):
+            setStringValue(text)
+
+        case .number(let num):
+            setNumberValue(num)
+
+        case .boolean(let bool):
+            setBooleanValue(bool)
+
+        case .formula(let formula):
+            setFormulaValue(formula)
+
+        case .empty:
+            clearValue()
+
+        case .date(let date):
+            // Excel stores dates as numbers (days since 1900-01-01)
+            let excelDate = dateToExcelNumber(date)
+            setNumberValue(excelDate)
+        }
+
+        isModified = true
+        sheet?.markAsModified()
+    }
+
+    /// Set a string value
+    private func setStringValue(_ text: String) {
+        // For Phase 2, we'll use inline strings (simpler than managing shared strings)
+        // Phase 3 can optimize to use shared strings
+        cellData = CellData(
+            reference: reference,
+            type: .inlineString,
+            value: text,
+            formula: nil
+        )
+    }
+
+    /// Set a numeric value
+    private func setNumberValue(_ number: Double) {
+        cellData = CellData(
+            reference: reference,
+            type: .number,
+            value: String(number),
+            formula: nil
+        )
+    }
+
+    /// Set a boolean value
+    private func setBooleanValue(_ bool: Bool) {
+        cellData = CellData(
+            reference: reference,
+            type: .boolean,
+            value: bool ? "1" : "0",
+            formula: nil
+        )
+    }
+
+    /// Set a formula
+    private func setFormulaValue(_ formula: String) {
+        cellData = CellData(
+            reference: reference,
+            type: nil,  // Formulas don't have a type attribute
+            value: nil,  // Value will be calculated by Excel
+            formula: formula
+        )
+    }
+
+    /// Clear the cell value
+    private func clearValue() {
+        cellData = CellData(
+            reference: reference,
+            type: nil,
+            value: nil,
+            formula: nil
+        )
+    }
+
+    /// Convert Swift Date to Excel number (days since 1900-01-01)
+    private func dateToExcelNumber(_ date: Date) -> Double {
+        // Excel epoch: January 1, 1900 (but Excel incorrectly treats 1900 as a leap year)
+        let excelEpoch = Date(timeIntervalSince1970: -2209161600) // 1900-01-01 00:00:00 UTC
+        let daysSinceEpoch = date.timeIntervalSince(excelEpoch) / 86400.0
+        return daysSinceEpoch + 1  // Excel is 1-indexed
+    }
+
+    /// Get the internal cell data (for XML writing)
+    internal func getCellData() -> CellData {
+        return cellData
     }
 }
 

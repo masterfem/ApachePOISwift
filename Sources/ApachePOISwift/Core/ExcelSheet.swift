@@ -22,6 +22,12 @@ public class ExcelSheet {
     /// Reference to parent workbook
     private weak var workbook: ExcelWorkbook?
 
+    /// Cache of cell objects (reuse same object for same reference)
+    private var cellCache: [String: ExcelCell] = [:]
+
+    /// Whether this sheet has been modified
+    internal var isModified: Bool = false
+
     init(sheetInfo: SheetInfo, cells: [String: CellData], workbook: ExcelWorkbook?) {
         self.name = sheetInfo.name
         self.sheetInfo = sheetInfo
@@ -37,6 +43,11 @@ public class ExcelSheet {
         // Validate reference format
         _ = try CellReference(reference)
 
+        // Return cached cell if exists (important for write operations)
+        if let cachedCell = cellCache[reference] {
+            return cachedCell
+        }
+
         // Get cell data (or create empty cell if not found)
         let cellData = cells[reference] ?? CellData(
             reference: reference,
@@ -45,7 +56,9 @@ public class ExcelSheet {
             formula: nil
         )
 
-        return ExcelCell(reference: reference, cellData: cellData, workbook: workbook)
+        let cell = ExcelCell(reference: reference, cellData: cellData, workbook: workbook, sheet: self)
+        cellCache[reference] = cell
+        return cell
     }
 
     /// Get a cell by column and row indices (zero-based)
@@ -81,6 +94,34 @@ public class ExcelSheet {
     /// Get the sheet ID
     public var sheetId: String {
         return sheetInfo.sheetId
+    }
+
+    // MARK: - Write Support (Phase 2)
+
+    /// Mark this sheet as modified
+    internal func markAsModified() {
+        isModified = true
+        workbook?.markAsModified()
+    }
+
+    /// Get all cells for XML writing (includes modified cells)
+    internal func getAllCellsForWriting() -> [ExcelCell] {
+        // Collect all cells from cache (which includes modifications)
+        var allCells: [String: ExcelCell] = cellCache
+
+        // Add cells from original data that aren't in cache
+        for (reference, cellData) in cells {
+            if allCells[reference] == nil {
+                allCells[reference] = ExcelCell(reference: reference, cellData: cellData, workbook: workbook, sheet: self)
+            }
+        }
+
+        return Array(allCells.values).sorted { $0.reference < $1.reference }
+    }
+
+    /// Get the sheet info (for workbook writing)
+    internal func getSheetInfo() -> SheetInfo {
+        return sheetInfo
     }
 }
 

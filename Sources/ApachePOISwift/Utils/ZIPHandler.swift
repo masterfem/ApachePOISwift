@@ -67,33 +67,36 @@ public class ZIPHandler {
             try FileManager.default.removeItem(at: destination)
         }
 
-        guard let archive = Archive(url: destination, accessMode: .create) else {
-            throw ExcelError.fileWriteError("Cannot create archive at \(destination.path)")
+        // Use throwing initializer for Archive
+        let archive: Archive
+        do {
+            archive = try Archive(url: destination, accessMode: .create)
+        } catch {
+            throw ExcelError.fileWriteError("Cannot create archive at \(destination.path): \(error.localizedDescription)")
         }
 
-        // Get all files in directory recursively
+        // Verify directory exists
+        var isDirectory: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: directory.path, isDirectory: &isDirectory),
+              isDirectory.boolValue else {
+            throw ExcelError.fileWriteError("Directory does not exist or is not a directory: \(directory.path)")
+        }
+
+        // Get all subpaths (files and directories)
         let fileManager = FileManager.default
-        guard let enumerator = fileManager.enumerator(
-            at: directory,
-            includingPropertiesForKeys: [.isRegularFileKey],
-            options: [.skipsHiddenFiles]
-        ) else {
-            throw ExcelError.fileWriteError("Cannot enumerate directory \(directory.path)")
+        guard let subpaths = try? fileManager.subpathsOfDirectory(atPath: directory.path) else {
+            throw ExcelError.fileWriteError("Cannot list contents of directory \(directory.path)")
         }
 
         // Add each file to archive
-        for case let fileURL as URL in enumerator {
-            // Skip directories (archive.addEntry handles them automatically)
-            guard let isRegularFile = try? fileURL.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile,
-                  isRegularFile else {
-                continue
-            }
+        var fileCount = 0
+        for relativePath in subpaths {
+            let fullPath = directory.appendingPathComponent(relativePath)
 
-            // Calculate relative path
-            guard let relativePath = fileURL.path.replacingOccurrences(
-                of: directory.path + "/",
-                with: ""
-            ).removingPercentEncoding else {
+            // Skip directories
+            var isDir: ObjCBool = false
+            guard fileManager.fileExists(atPath: fullPath.path, isDirectory: &isDir),
+                  !isDir.boolValue else {
                 continue
             }
 
@@ -104,9 +107,14 @@ public class ZIPHandler {
                     relativeTo: directory,
                     compressionMethod: .deflate
                 )
+                fileCount += 1
             } catch {
-                throw ExcelError.fileWriteError("Cannot add file \(relativePath) to archive: \(error.localizedDescription)")
+                throw ExcelError.fileWriteError("Cannot add file '\(relativePath)' to archive: \(error.localizedDescription)")
             }
+        }
+
+        guard fileCount > 0 else {
+            throw ExcelError.fileWriteError("No files were added to archive - found \(subpaths.count) paths in directory")
         }
     }
 
