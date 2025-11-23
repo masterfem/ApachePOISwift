@@ -5,16 +5,21 @@ A pure Swift library for reading and writing Excel .xlsx/.xlsm files with VBA ma
 ## 🎯 Project Status
 
 **Phase 1**: ✅ **COMPLETE** - Foundation (Reading Excel files)
-**Next Phase**: Phase 2 - Write Support
+**Phase 2**: ✅ **COMPLETE** - Write Support (Modifying and saving)
+**Phase 3**: ✅ **COMPLETE** - Macro Preservation
+**Next Phase**: Phase 4 - Styles & Formatting
 **License**: Apache 2.0
 
-### What Works Now (Phase 1)
+### What Works Now (Phases 1-3)
 - ✅ Open .xlsx and .xlsm files
-- ✅ Read cell values (strings, numbers, booleans, formulas)
+- ✅ Read cell values (strings, numbers, booleans, formulas, dates)
+- ✅ **Modify cell values** (strings, numbers, booleans, formulas)
+- ✅ **Save workbooks** to .xlsx/.xlsm files
+- ✅ **Preserve VBA macros** during save operations
 - ✅ Access sheets by index or name
-- ✅ Detect VBA macros
-- ✅ Parse shared strings
+- ✅ Parse shared strings and inline strings
 - ✅ Handle large files (tested with 3.2MB, 26-sheet workbooks)
+- ✅ **Full round-trip compatibility** (save → reload → verify)
 
 ## 📚 Documentation
 
@@ -49,6 +54,15 @@ default: break
 if workbook.hasVBAMacros {
     print("This file contains VBA macros")
 }
+
+// Modify cells (Phase 2)
+cell.setValue(.string("Updated Value"))
+cell.setValue(.number(42.5))
+cell.setValue(.boolean(true))
+cell.setValue(.formula("=SUM(A1:A10)"))
+
+// Save workbook
+try workbook.save(to: outputURL)
 ```
 
 ## 🚀 Quick Start
@@ -85,16 +99,24 @@ for sheet in workbook.allSheets {
 }
 ```
 
-### Write Support (Coming Soon - Phase 2)
+### Write Support (Phase 2 - Complete!)
 
 ```swift
-// Future: Modify data
+// Modify data
+let workbook = try ExcelWorkbook(fileURL: templateURL)
 let sheet = try workbook.sheet(named: "Sales")
-sheet.cell("A1").value = "Updated"  // Phase 2
-sheet.cell("B1").value = 123.45     // Phase 2
+
+// Set cell values
+try sheet.cell("A1").setValue(.string("Updated Text"))
+try sheet.cell("B1").setValue(.number(123.45))
+try sheet.cell("C1").setValue(.formula("=SUM(B1:B10)"))
 
 // Save with macros preserved
-try workbook.save(to: outputURL)     // Phase 2
+try workbook.save(to: outputURL)
+
+// Macros are intact! ✅
+let reloaded = try ExcelWorkbook(fileURL: outputURL)
+print("Has macros: \(reloaded.hasVBAMacros)")  // true
 ```
 
 ## 🏗️ Why This Library?
@@ -119,17 +141,20 @@ swift test
 ```
 
 Current test coverage:
-- ✅ 17 tests passing
+- ✅ **27 tests passing** (all green!)
 - ✅ Unit tests for cell reference parsing
 - ✅ Integration tests with real 3.2MB Excel file (26 sheets, VBA macros)
+- ✅ Write tests (modify, save, reload, verify)
+- ✅ Macro preservation tests
+- ✅ Inline string round-trip tests
 - ✅ Error handling tests
 
 ## 🗺️ Roadmap
 
 - [x] **Phase 1: Foundation** - Read .xlsx/.xlsm files ✅ **COMPLETE**
-- [ ] **Phase 2: Write Support** - Modify cells and save files (Next)
-- [ ] **Phase 3: Macro Preservation** - Save .xlsm with VBA intact
-- [ ] **Phase 4: Styles & Formatting** - Fonts, colors, borders
+- [x] **Phase 2: Write Support** - Modify cells and save files ✅ **COMPLETE**
+- [x] **Phase 3: Macro Preservation** - Save .xlsm with VBA intact ✅ **COMPLETE**
+- [ ] **Phase 4: Styles & Formatting** - Fonts, colors, borders (Next)
 - [ ] **Phase 5: Formulas** - Write formulas, optional evaluation
 - [ ] **Phase 6: Advanced Features** - Charts, conditional formatting
 
@@ -157,4 +182,4 @@ Inspired by [Apache POI](https://poi.apache.org/) - the industry-standard Java l
 ---
 
 **Created**: November 22, 2024
-**Status**: Phase 1 Complete (Reading) - Phase 2 In Progress (Writing)
+**Status**: Phases 1-3 Complete (Read/Write/Macros) - Phase 4 Next (Styles)
