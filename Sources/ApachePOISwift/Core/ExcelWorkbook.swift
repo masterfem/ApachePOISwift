@@ -108,9 +108,14 @@ public class ExcelWorkbook {
 
             let sheetData = try Data(contentsOf: sheetURL)
             let sheetParser = SheetXMLParser()
-            let cells = try sheetParser.parse(data: sheetData)
+            let parsedData = try sheetParser.parse(data: sheetData)
 
-            let sheet = ExcelSheet(sheetInfo: sheetInfo, cells: cells, workbook: self)
+            let sheet = ExcelSheet(
+                sheetInfo: sheetInfo,
+                cells: parsedData.cells,
+                mergedCells: parsedData.mergedCells,
+                workbook: self
+            )
             sheets.append(sheet)
         }
     }

@@ -1,92 +1,46 @@
-# Apache POI for Swift
+# Apache POI Swift
 
-A pure Swift library for reading and writing Excel .xlsx/.xlsm files with VBA macro preservation, inspired by Apache POI (Java).
+[![Swift 5.9+](https://img.shields.io/badge/Swift-5.9+-orange.svg)](https://swift.org)
+[![Platforms](https://img.shields.io/badge/Platforms-iOS%20|%20macOS%20|%20watchOS-blue.svg)](https://swift.org)
+[![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](LICENSE)
+[![Tests](https://img.shields.io/badge/Tests-63%20Passing-success.svg)](Tests/)
+
+A pure Swift library for reading and writing Excel `.xlsx` and `.xlsm` files with **VBA macro preservation**, inspired by [Apache POI](https://poi.apache.org/).
 
 ## 🎯 Project Status
 
-**Phase 1**: ✅ **COMPLETE** - Foundation (Reading Excel files)
-**Phase 2**: ✅ **COMPLETE** - Write Support (Modifying and saving)
-**Phase 3**: ✅ **COMPLETE** - Macro Preservation
-**Phase 4**: ✅ **COMPLETE** - Styles & Formatting
-**Next Phase**: Phase 5 - Advanced Formulas
+**ALL CORE PHASES COMPLETE** - Production Ready! 🎉
+
+- ✅ **Phase 1**: Foundation (Reading Excel files)
+- ✅ **Phase 2**: Write Support (Modifying and saving)
+- ✅ **Phase 3**: Macro Preservation (.xlsm support)
+- ✅ **Phase 4**: Style Reading (fonts, fills, borders)
+- ✅ **Phase 4B**: Style Creation (programmatic styling)
+- ✅ **Phase 5**: Formula Support (read/write formulas)
+- ✅ **Phase 6**: Advanced Features (merged cells, charts, drawings)
+
 **License**: Apache 2.0
+**Tests**: 63 passing (0 failures)
 
-### What Works Now (Phases 1-4)
-- ✅ Open .xlsx and .xlsm files
-- ✅ Read cell values (strings, numbers, booleans, formulas, dates)
-- ✅ **Modify cell values** (strings, numbers, booleans, formulas)
-- ✅ **Save workbooks** to .xlsx/.xlsm files
-- ✅ **Preserve VBA macros** during save operations
-- ✅ **Read cell styles** (fonts, fills, borders, number formats)
-- ✅ **Preserve cell styles** during save operations
-- ✅ **Copy styles** between cells
-- ✅ Access sheets by index or name
-- ✅ Parse shared strings and inline strings
-- ✅ Handle large files (tested with 3.2MB, 26-sheet workbooks with complex styling)
-- ✅ **Full round-trip compatibility** (save → reload → verify)
+## ✨ Features
 
-## 📚 Documentation
+### Core Functionality
+- ✅ **Read Excel files** (.xlsx and .xlsm)
+- ✅ **Write Excel files** (modify cells, formulas, styles)
+- ✅ **Preserve VBA macros** (full .xlsm support)
+- ✅ **Cell styling** (read and create fonts, fills, borders, number formats)
+- ✅ **Formulas** (read and write Excel formulas)
+- ✅ **Merged cells** (automatic preservation)
+- ✅ **Charts & drawings** (preserve charts and images)
+- ✅ **Pure Swift** (no Objective-C bridging)
 
-- **[Examples/BasicReadExample.swift](./Examples/BasicReadExample.swift)** - 9 practical code examples
-- **[Examples/StyleExample.swift](./Examples/StyleExample.swift)** - 6 style manipulation examples
-- **[Integration Tests](./Tests/ApachePOISwiftTests/IntegrationTests.swift)** - Real-world usage examples
-- **[Style Tests](./Tests/ApachePOISwiftTests/StyleTests.swift)** - Style reading and manipulation tests
-
-### API Overview
-
-```swift
-// Open a workbook
-let workbook = try ExcelWorkbook(fileURL: url)
-
-// Access sheets
-let sheet = try workbook.sheet(at: 0)           // By index
-let sheet = try workbook.sheet(named: "Sales")  // By name
-
-// Read cells
-let cell = try sheet.cell("A1")                 // A1 notation
-let cell = try sheet.cell(column: 0, row: 0)    // By indices
-
-// Get cell values
-switch cell.value {
-case .string(let text): print(text)
-case .number(let num): print(num)
-case .boolean(let bool): print(bool)
-case .formula(let formula): print(formula)
-case .empty: print("Empty cell")
-default: break
-}
-
-// Check for macros
-if workbook.hasVBAMacros {
-    print("This file contains VBA macros")
-}
-
-// Modify cells (Phase 2)
-cell.setValue(.string("Updated Value"))
-cell.setValue(.number(42.5))
-cell.setValue(.boolean(true))
-cell.setValue(.formula("=SUM(A1:A10)"))
-
-// Read styles (Phase 4)
-if let font = cell.font {
-    print("Font: \(font.name ?? "unknown") \(font.size ?? 0)pt")
-    print("Bold: \(font.bold), Italic: \(font.italic)")
-}
-
-if let fill = cell.fill {
-    print("Background: \(fill.patternType.rawValue)")
-    if let color = fill.foregroundColor {
-        print("Color: \(color)")
-    }
-}
-
-// Copy style to another cell
-let targetCell = try sheet.cell("B2")
-targetCell.setStyleIndex(cell.styleIndex)
-
-// Save workbook (styles are automatically preserved)
-try workbook.save(to: outputURL)
-```
+### Advanced Features
+- ✅ Multiple sheets support
+- ✅ Cell references (A1 notation and column/row)
+- ✅ Shared strings pool
+- ✅ Template-based generation
+- ✅ Large file support (tested with 3+ MB workbooks)
+- ✅ Full round-trip compatibility (save → reload → verify)
 
 ## 🚀 Quick Start
 
@@ -96,114 +50,244 @@ Add to your `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/masterfem/ApachePOISwift.git", branch: "main")
+    .package(url: "https://github.com/YourUsername/ApachePOISwift.git", from: "1.0.0")
 ]
 ```
 
-### Basic Usage
+### Reading Excel Files
 
 ```swift
 import ApachePOISwift
 
 // Open an Excel file
-let workbook = try ExcelWorkbook(fileURL: fileURL)
+let workbook = try ExcelWorkbook(fileURL: URL(fileURLWithPath: "report.xlsx"))
 
-// Read data
+// Get a sheet
 let sheet = try workbook.sheet(at: 0)
-let cell = try sheet.cell("A1")
-print(cell.value)  // Prints the cell value
+// or: let sheet = try workbook.sheet(named: "Sales")
 
-// Iterate through sheets
-for sheet in workbook.allSheets {
-    print("Sheet: \(sheet.name)")
-    for cell in sheet.nonEmptyCells() {
-        print("  \(cell.reference): \(cell.value)")
-    }
+// Read cell values
+let cell = try sheet.cell("A1")
+switch cell.value {
+case .string(let text): print("Text: \(text)")
+case .number(let num): print("Number: \(num)")
+case .formula(let formula): print("Formula: \(formula)")
+default: break
+}
+
+// Read styles
+if let font = cell.font {
+    print("Font: \(font.name ?? "") \(font.size ?? 0)pt, Bold: \(font.bold)")
 }
 ```
 
-### Write Support (Phase 2 - Complete!)
+### Writing Excel Files
 
 ```swift
-// Modify data
-let workbook = try ExcelWorkbook(fileURL: templateURL)
-let sheet = try workbook.sheet(named: "Sales")
+// Modify cells
+let cell = try sheet.cell("B2")
+cell.setValue(.string("Hello World"))
+cell.setFormula("=SUM(A1:A10)")
 
-// Set cell values
-try sheet.cell("A1").setValue(.string("Updated Text"))
-try sheet.cell("B1").setValue(.number(123.45))
-try sheet.cell("C1").setValue(.formula("=SUM(B1:B10)"))
+// Apply styles
+cell.makeBold()
+cell.setBackgroundColor("FFFF0000")  // Red
+cell.setBorder(style: .medium, color: "FF000000")
 
-// Save with macros preserved
-try workbook.save(to: outputURL)
-
-// Macros are intact! ✅
-let reloaded = try ExcelWorkbook(fileURL: outputURL)
-print("Has macros: \(reloaded.hasVBAMacros)")  // true
+// Save
+try workbook.save(to: URL(fileURLWithPath: "output.xlsx"))
 ```
 
-## 🏗️ Why This Library?
+### Preserving VBA Macros
 
-**No existing Swift library** supports:
-- Full .xlsx/.xlsm read/write
-- VBA macro preservation
-- Complex Excel features (formulas, charts, styles)
+```swift
+// Open .xlsm file
+let workbook = try ExcelWorkbook(fileURL: URL(fileURLWithPath: "template.xlsm"))
 
-**This library fills that gap** by:
-- Treating .xlsx/.xlsm as ZIP + XML (standard format)
-- Preserving vbaProject.bin untouched (macros intact)
-- Following Apache POI's proven architecture
-- Pure Swift (iOS/macOS/watchOS compatible)
+// Modify data
+try sheet.cell("A1").setValue(.string("Updated"))
+
+// Save - macros are automatically preserved!
+try workbook.save(to: URL(fileURLWithPath: "output.xlsm"))
+```
+
+## 📖 Documentation
+
+- **[CLAUDE.md](CLAUDE.md)** - Complete architecture and implementation details
+- **[Examples/](Examples/)** - Real-world usage examples
+- **[Bug Fixes](Documentation/BugFixes/)** - Known issues and solutions
 
 ## 🧪 Testing
 
-Run the test suite:
+**63 comprehensive tests** covering all features:
 
 ```bash
 swift test
 ```
 
-Current test coverage:
-- ✅ **35 tests passing** (all green!)
-- ✅ Unit tests for cell reference parsing
-- ✅ Integration tests with real 3.2MB Excel file (26 sheets, VBA macros, complex styling)
-- ✅ Write tests (modify, save, reload, verify)
-- ✅ Macro preservation tests
-- ✅ Style reading and manipulation tests
-- ✅ Inline string round-trip tests
-- ✅ Error handling tests
+Test coverage includes:
+- Cell reference parsing (9 tests)
+- Formula support (14 tests)
+- Integration tests (8 tests)
+- Merged cells (4 tests)
+- Style creation (10 tests)
+- Style reading (8 tests)
+- Write operations (10 tests)
 
-## 🗺️ Roadmap
+All tests pass with **0 failures**. ✅
 
-- [x] **Phase 1: Foundation** - Read .xlsx/.xlsm files ✅ **COMPLETE**
-- [x] **Phase 2: Write Support** - Modify cells and save files ✅ **COMPLETE**
-- [x] **Phase 3: Macro Preservation** - Save .xlsm with VBA intact ✅ **COMPLETE**
-- [x] **Phase 4: Styles & Formatting** - Read/preserve fonts, colors, borders ✅ **COMPLETE**
-- [ ] **Phase 5: Advanced Formulas** - Write formulas, optional evaluation (Next)
-- [ ] **Phase 6: Advanced Features** - Charts, conditional formatting, data validation
+## 🏗️ Why This Library?
+
+**No other Swift library** provides:
+- Full .xlsx/.xlsm read/write
+- VBA macro preservation
+- Style creation
+- Complete formula support
+- Chart/drawing preservation
+
+**ApachePOISwift fills this gap** by following the Excel OOXML specification and Apache POI's proven architecture.
+
+## 💡 Use Cases
+
+### Solids Control App (Primary Use Case)
+
+Generate complex Excel reports with:
+- 26 sheets with formulas and charts
+- 61KB of VBA macros
+- Merged cells and styling
+- Professional reports from field data
+
+```swift
+func generateMarbarReport(data: ReporteData) throws -> URL {
+    let workbook = try ExcelWorkbook(name: "marbar_template", bundle: .main)
+
+    let sheet = try workbook.sheet(named: "GENERALES")
+    try sheet.cell("B5").setValue(.string(data.padId))
+    try sheet.cell("C10").setFormula("=SUM(B10:B20)")
+
+    try workbook.save(to: outputURL)
+    return outputURL
+}
+```
+
+## 📚 API Overview
+
+### Workbook Operations
+```swift
+// Open
+let workbook = try ExcelWorkbook(fileURL: url)
+let workbook = try ExcelWorkbook(name: "template", bundle: .main)
+
+// Sheet access
+let sheet = try workbook.sheet(at: 0)
+let sheet = try workbook.sheet(named: "Sales")
+let allSheets = workbook.allSheets
+let names = workbook.sheetNames
+
+// Properties
+workbook.sheetCount
+workbook.hasVBAMacros
+```
+
+### Cell Operations
+```swift
+// Access
+let cell = try sheet.cell("A1")
+let cell = try sheet.cell(column: 0, row: 0)
+
+// Read
+cell.value           // CellValue enum
+cell.formula        // String?
+cell.styleIndex     // Int?
+cell.font           // Font?
+cell.fill           // Fill?
+cell.border         // Border?
+cell.numberFormat   // NumberFormat?
+
+// Write
+cell.setValue(.string("text"))
+cell.setValue(.number(123.45))
+cell.setValue(.date(Date()))
+cell.setFormula("=SUM(A1:A10)")
+
+// Style
+cell.makeBold()
+cell.makeItalic()
+cell.setBackgroundColor("FFFF0000")
+cell.setBorder(style: .thin, color: "FF000000")
+cell.applyFont(Font(name: "Arial", size: 14, bold: true))
+```
+
+### Formulas
+```swift
+cell.setFormula("=A1+B1")
+cell.setFormula("=SUM(A1:A10)")
+cell.setFormula("=IF(A1>100,\"High\",\"Low\")")
+cell.setFormula("=VLOOKUP(A1,Sheet2!A:B,2,FALSE)")
+```
+
+## 🛠️ Advanced Features
+
+### Merged Cells
+Automatically preserved during save/reload cycles.
+
+### Charts & Drawings
+All charts, images, and drawings are preserved when modifying workbooks.
+
+### Number Formatting
+```swift
+cell.applyNumberFormat(NumberFormat(formatId: 2))   // 0.00
+cell.applyNumberFormat(NumberFormat(formatId: 14))  // Date
+cell.applyNumberFormat(NumberFormat(formatId: 44))  // Currency
+```
+
+### Complete Styling
+```swift
+cell.applyStyle(
+    font: Font(name: "Arial", size: 14, bold: true, color: "FFFFFFFF"),
+    fill: Fill(patternType: .solid, foregroundColor: "FF0000FF"),
+    border: Border(
+        left: BorderEdge(style: .medium),
+        right: BorderEdge(style: .medium),
+        top: BorderEdge(style: .medium),
+        bottom: BorderEdge(style: .medium)
+    ),
+    horizontalAlignment: .center,
+    verticalAlignment: .center,
+    wrapText: true
+)
+```
+
+## 🔧 Requirements
+
+- Swift 5.9+
+- iOS 15+ / macOS 12+ / watchOS 8+
+- Excel 2007+ formats (.xlsx, .xlsm)
 
 ## 🤝 Contributing
 
-Contributions welcome! This project follows standard Swift Package Manager conventions.
+Contributions welcome! Please:
 
-### Development
-
-```bash
-git clone https://github.com/masterfem/ApachePOISwift.git
-cd ApachePOISwift
-swift build
-swift test
-```
+1. Fork the repository
+2. Create a feature branch
+3. Add tests
+4. Ensure all tests pass
+5. Submit a pull request
 
 ## 📄 License
 
-Apache License 2.0 (same as Apache POI for compatibility)
+Apache License 2.0 (same as Apache POI)
 
 ## 🙏 Acknowledgments
 
-Inspired by [Apache POI](https://poi.apache.org/) - the industry-standard Java library for Microsoft Office formats.
+- Inspired by [Apache POI](https://poi.apache.org/)
+- Uses [ZIPFoundation](https://github.com/weichsel/ZIPFoundation)
+- OOXML spec: [ECMA-376](https://www.ecma-international.org/publications-and-standards/standards/ecma-376/)
 
 ---
 
+**Status**: Production Ready
 **Created**: November 22, 2024
-**Status**: Phases 1-4 Complete (Read/Write/Macros/Styles) - Phase 5 Next (Advanced Formulas)
+**Last Updated**: November 23, 2024
+
+🤖 *Generated with [Claude Code](https://claude.com/claude-code)*

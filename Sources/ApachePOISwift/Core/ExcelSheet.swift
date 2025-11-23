@@ -19,6 +19,9 @@ public class ExcelSheet {
     /// Cell data parsed from the sheet XML
     private var cells: [String: CellData]
 
+    /// Merged cell ranges (e.g., ["A1:B2", "C3:D5"])
+    internal var mergedCells: [String] = []
+
     /// Reference to parent workbook
     private weak var workbook: ExcelWorkbook?
 
@@ -28,10 +31,11 @@ public class ExcelSheet {
     /// Whether this sheet has been modified
     internal var isModified: Bool = false
 
-    init(sheetInfo: SheetInfo, cells: [String: CellData], workbook: ExcelWorkbook?) {
+    init(sheetInfo: SheetInfo, cells: [String: CellData], mergedCells: [String] = [], workbook: ExcelWorkbook?) {
         self.name = sheetInfo.name
         self.sheetInfo = sheetInfo
         self.cells = cells
+        self.mergedCells = mergedCells
         self.workbook = workbook
     }
 

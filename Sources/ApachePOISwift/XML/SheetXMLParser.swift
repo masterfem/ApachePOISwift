@@ -17,9 +17,16 @@ struct CellData {
     let styleIndex: Int?        // Style index (references cellXfs in styles.xml)
 }
 
+/// Data from a worksheet including cells and merged cell ranges
+struct SheetData {
+    let cells: [String: CellData]
+    let mergedCells: [String]  // Array of merged cell ranges (e.g., ["A1:B2", "C3:D5"])
+}
+
 /// Parses Excel worksheet XML files (sheet1.xml, sheet2.xml, etc.)
 class SheetXMLParser: NSObject, XMLParserDelegate {
     private var cells: [String: CellData] = [:]
+    private var mergedCells: [String] = []
     private var currentCellReference: String = ""
     private var currentCellType: CellType?
     private var currentValue: String?
@@ -31,10 +38,11 @@ class SheetXMLParser: NSObject, XMLParserDelegate {
 
     /// Parse sheet XML data
     /// - Parameter data: XML data from xl/worksheets/sheetN.xml
-    /// - Returns: Dictionary of cell data keyed by cell reference
+    /// - Returns: SheetData containing cells and merged cell ranges
     /// - Throws: ExcelError if parsing fails
-    func parse(data: Data) throws -> [String: CellData] {
+    func parse(data: Data) throws -> SheetData {
         cells = [:]
+        mergedCells = []
         currentCellReference = ""
         currentCellType = nil
         currentValue = nil
@@ -53,7 +61,7 @@ class SheetXMLParser: NSObject, XMLParserDelegate {
             throw ExcelError.parsingError("Sheet: Unknown parsing error")
         }
 
-        return cells
+        return SheetData(cells: cells, mergedCells: mergedCells)
     }
 
     // MARK: - XMLParserDelegate
@@ -86,6 +94,11 @@ class SheetXMLParser: NSObject, XMLParserDelegate {
         } else if elementName == "t" && isParsingInlineString {
             // Text element inside inline string
             currentText = ""
+        } else if elementName == "mergeCell" {
+            // Merged cell element: <mergeCell ref="A1:B2"/>
+            if let ref = attributeDict["ref"] {
+                mergedCells.append(ref)
+            }
         }
     }
 
