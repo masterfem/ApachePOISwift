@@ -469,6 +469,23 @@ public class ExcelCell {
         return daysSinceEpoch + 1  // Excel is 1-indexed
     }
 
+    // MARK: - Formula Evaluation (Phase 7A)
+
+    /// Evaluate this cell's formula and return the calculated value
+    /// - Returns: The calculated value, or nil if the cell doesn't contain a formula
+    /// - Throws: ExcelError if the formula is invalid
+    public func evaluateFormula() throws -> ExcelValue? {
+        guard let formula = self.formula else {
+            return nil
+        }
+
+        guard let workbook = workbook, let sheet = sheet else {
+            return nil
+        }
+
+        return try workbook.evaluateFormula(formula, in: sheet)
+    }
+
     /// Get the internal cell data (for XML writing)
     internal func getCellData() -> CellData {
         return cellData

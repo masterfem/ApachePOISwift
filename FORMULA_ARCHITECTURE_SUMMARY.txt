@@ -1,0 +1,313 @@
+================================================================================
+EXCEL FORMULA EVALUATION ARCHITECTURE - QUICK REFERENCE
+================================================================================
+
+CURRENT STATE (✓ = have, X = missing)
+────────────────────────────────────
+✓ CellReference parsing (A1, $B$2, ranges)
+✓ Formula storage in cells
+✓ Formula persistence (save/load)
+X Formula parsing/tokenization
+X Formula evaluation/calculation
+X Dependency resolution
+X Circular reference detection
+X Excel function library
+
+================================================================================
+RECOMMENDED ARCHITECTURE (3-Phase Pipeline)
+================================================================================
+
+PHASE 1: PARSING (Tokenizer + Parser)
+─────────────────────────────────────
+Input:  "=SUM(A1:A10)+B5*2"
+         ↓
+Tokenizer: FormulaTokenizer.swift
+  - Breaks into tokens: [FUNCTION(SUM), LPAREN, RANGE(A1:A10), ...]
+  - Handles: operators, functions, cell refs, literals, parentheses
+  
+Parser: FormulaParser.swift
+  - Recursive descent parser
+  - Builds Abstract Syntax Tree (AST)
+  - Respects operator precedence:
+    1. ^ (exponentiation)
+    2. * / % (multiplication, division)
+    3. + - (addition, subtraction)
+    4. & (string concatenation)
+    5. =,<>,<,>,<=,>= (comparison)
+    6. NOT, AND, OR (logical)
+
+Output: AST representing "SUM(A1:A10) + (B5 * 2)"
+
+Files to create:
+  - FormulaTokenizer.swift (200 lines)
+  - FormulaParser.swift (400 lines)
+  - FormulaAST.swift (300 lines)
+
+PHASE 2: DEPENDENCY RESOLUTION (Graph Building)
+────────────────────────────────────────────
+Input:  AST for all cells in sheet
+         ↓
+DependencyGraph.swift:
+  - Extract cell references from each formula
+  - Build directed graph: A1→B1→C1→D1
+  - Detect cycles (circular references)
+  - Compute topological sort for evaluation order
+
+Output: [A1, B1, C1, D1] (evaluation order)
+
+Files to create:
+  - DependencyGraph.swift (250 lines)
+  - CellDependencyResolver.swift (150 lines)
+
+PHASE 3: EVALUATION (Executing AST)
+──────────────────────────────────
+Input:  AST + sheet data
+         ↓
+FormulaEvaluator.swift:
+  - Traverse AST nodes
+  - Resolve cell references to values
+  - Call Excel functions
+  - Handle type coercion
+  - Return result
+
+ExcelFunctionLibrary.swift:
+  - Implement 40-50 Excel functions
+  - SUM, AVERAGE, COUNT, IF, VLOOKUP, etc.
+  
+ExcelValue.swift:
+  - Result type: number, string, boolean, error, array
+  - Type coercion (Excel's loose typing)
+
+Output: ExcelValue (result)
+
+Files to create:
+  - FormulaEvaluator.swift (400 lines)
+  - ExcelFunctionLibrary.swift (1000+ lines, phased)
+  - ExcelValue.swift (200 lines)
+
+================================================================================
+FUNCTION PRIORITY (Phased Implementation)
+================================================================================
+
+TIER 1: ESSENTIAL (MVP - Week 1-2)
+  SUM, AVERAGE, COUNT, COUNTA, IF, +, -, *, /, ^
+
+TIER 2: IMPORTANT (Week 3-4)
+  MIN, MAX, CONCATENATE, &, AND, OR, NOT, VLOOKUP, INDEX
+
+TIER 3: COMMON (Week 5-6)
+  SUMIF, COUNTIF, AVERAGEIF, MATCH, IFERROR, UPPER, LOWER, LEN, TRIM
+
+TIER 4: ADVANCED (Week 7-8)
+  SUMIFS, COUNTIFS, ROUND, ABS, SQRT, MEDIAN, STDEV
+  LEFT, RIGHT, MID, FIND, REPLACE
+  TODAY, NOW, YEAR, MONTH, DAY
+
+================================================================================
+KEY CHALLENGES & SOLUTIONS
+================================================================================
+
+CHALLENGE 1: Operator Precedence
+SOLUTION: Use recursive descent parser with precedence climbing
+  Example: =2+3*4 must parse as 2+(3*4), not (2+3)*4
+  
+CHALLENGE 2: Cell References
+SOLUTION: Extract references from AST, validate they exist
+  Formats: A1, $A$1, A:A, 1:1, Sheet1!A1, A1:C10, etc.
+  
+CHALLENGE 3: Circular References
+SOLUTION: DFS cycle detection before evaluation
+  Example: A1=B1 AND B1=A1 creates infinite loop
+  
+CHALLENGE 4: Type Coercion
+SOLUTION: Excel-like loose typing rules
+  String "123" + Number 5 = Number 128
+  Text + Text = concatenation
+  Number 0 or empty = FALSE, anything else = TRUE
+  
+CHALLENGE 5: Large Sheets (10k+ rows)
+SOLUTION: Lazy evaluation + caching
+  - Don't evaluate all cells upfront
+  - Cache parsed formulas (reuse AST)
+  - Cache evaluation results (invalidate on change)
+  - Only recalculate dependent cells
+
+================================================================================
+SWIFT-SPECIFIC DESIGN PATTERNS
+================================================================================
+
+PATTERN 1: AST as Swift Enums (Type-Safe)
+  enum FormulaAST {
+      case number(Double)
+      case string(String)
+      case cellRef(String)
+      case binaryOp(FormulaAST, String, FormulaAST)
+      case functionCall(String, [FormulaAST])
+      indirect case range(FormulaAST, FormulaAST)
+  }
+
+PATTERN 2: Functions as Protocol
+  protocol ExcelFunction {
+      var name: String { get }
+      func evaluate(args: [[ExcelValue]]) throws -> ExcelValue
+  }
+
+PATTERN 3: Error Handling
+  enum ExcelError: Error {
+      case invalidCellReference(String)
+      case circularReference(String)
+      case divisionByZero
+      case invalidArgument(String)
+      case typeError(String)
+  }
+
+PATTERN 4: Caching
+  class FormulaCache {
+      private var parsedFormulas: [String: FormulaAST] = [:]
+      private var evaluatedValues: [String: ExcelValue] = [:]
+  }
+
+================================================================================
+INTEGRATION POINTS
+================================================================================
+
+1. ExcelCell.swift - Already has formula storage
+   ✓ Can read/write formula strings
+   ✓ Can check hasFormula
+   NEW: Add evaluateFormula(in sheet: ExcelSheet) -> ExcelValue
+
+2. ExcelSheet.swift
+   NEW: Add recalculateAllFormulas()
+   NEW: Add recalculateDependentFormulas(cell: ExcelCell)
+
+3. ExcelWorkbook.swift
+   NEW: Add formula evaluation at save time (optional)
+   NEW: Cache dependency graph (expensive to compute)
+
+================================================================================
+TESTING APPROACH
+================================================================================
+
+Unit Tests:
+  - FormulaTokenizerTests: Verify tokenization of all syntax
+  - FormulaParserTests: Verify AST construction, operator precedence
+  - FormulaEvaluatorTests: Verify calculation correctness
+  - ExcelFunctionTests: Each function tested independently
+
+Integration Tests:
+  - DependencyGraphTests: Circular reference detection
+  - End-to-end tests with actual Marbar template
+
+Real-World Validation:
+  - Open Marbar template
+  - Modify input cells
+  - Recalculate formulas
+  - Verify results match Excel
+  - Preserve 61KB of VBA macros untouched
+
+================================================================================
+PERFORMANCE TARGETS
+================================================================================
+
+Formula parsing:      <100ms for typical sheet (1000 formulas)
+Dependency analysis:  <50ms (only done once at load time)
+Single cell eval:     <1ms for formula without dependencies
+Sheet recalc:         <500ms for 1000-cell sheet
+Memory overhead:      <5MB for typical 5000-cell sheet
+
+================================================================================
+APACHE POI REFERENCE
+================================================================================
+
+ApachePOI Components to Study:
+  org.apache.poi.ss.formula.FormulaParser    → Our FormulaParser
+  org.apache.poi.ss.formula.eval             → Our ExcelFunctionLibrary
+  org.apache.poi.ss.usermodel.FormulaEvaluator → Our FormulaEvaluator
+  
+Key Differences (for Swift):
+  POI uses PTG tokens (Excel binary format)
+  We use FormulaToken Swift enum (simpler)
+  
+  POI caches in WorkbookEvaluator
+  We cache in FormulaCache (similar approach)
+  
+  POI supports 202+ functions
+  We start with 6, expand phased (40-50 by week 8)
+
+================================================================================
+TIMELINE ESTIMATE
+================================================================================
+
+Week 1: Tokenizer + AST
+  - FormulaTokenizer with full operator/function support
+  - FormulaAST enum types
+  - Unit tests
+
+Week 2: Parser
+  - Complete FormulaParser (recursive descent)
+  - Operator precedence handling
+  - Cell/range reference parsing
+  - Comprehensive tests
+
+Week 3: Dependency Resolution
+  - DependencyGraph implementation
+  - Circular reference detection
+  - Topological sort
+
+Week 4: Basic Evaluation + Tier 1 Functions
+  - FormulaEvaluator core
+  - SUM, AVERAGE, COUNT, COUNTA, IF
+  - Arithmetic operators
+  - Integration with ExcelCell
+
+Week 5: Tier 2 Functions
+  - MIN, MAX, CONCATENATE, AND, OR, VLOOKUP, INDEX
+  - Better error handling
+
+Week 6: Testing with Marbar + Optimization
+  - Real-world validation with template
+  - Performance optimization
+  - Cache implementation
+
+Week 7: Tier 3 & 4 Functions (as needed)
+  - Conditional functions (SUMIF, COUNTIF, etc.)
+  - String functions
+  - Date functions
+
+Total: 7 weeks for production-ready formula evaluator
+
+================================================================================
+SUCCESS CRITERIA
+================================================================================
+
+MVP Criteria:
+  ✓ Parse and evaluate simple formulas (=A1+B1)
+  ✓ Support basic functions (SUM, AVERAGE, IF)
+  ✓ Handle cell references correctly
+  ✓ Detect circular references
+  ✓ Work with Marbar template
+  ✓ Preserve VBA macros
+
+Production Criteria:
+  ✓ All Tier 1 & 2 functions working
+  ✓ >90% test coverage
+  ✓ Performance <500ms for typical sheets
+  ✓ Handles 10k+ cell sheets efficiently
+  ✓ Clear error messages for formula errors
+  ✓ Extensible for future functions
+
+================================================================================
+NEXT STEPS
+================================================================================
+
+1. Create Formulas/ directory structure
+2. Implement FormulaTokenizer (most critical first step)
+3. Write comprehensive tokenizer tests
+4. Implement FormulaAST enum types
+5. Start FormulaParser with basic operators
+6. Iterate based on test results
+
+Start with: FormulaTokenizer.swift
+This is the foundation everything else depends on.
+
+================================================================================

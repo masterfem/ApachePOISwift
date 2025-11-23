@@ -34,6 +34,9 @@ public class ExcelWorkbook {
     /// Whether the workbook has been modified
     private var isModified: Bool = false
 
+    /// Formula evaluator (Phase 7A)
+    private lazy var formulaEvaluator = FormulaEvaluator(workbook: self)
+
     /// Initialize from an Excel file
     /// - Parameter fileURL: URL of the .xlsx or .xlsm file
     /// - Throws: ExcelError if the file cannot be opened or parsed
@@ -475,6 +478,23 @@ public class ExcelWorkbook {
             .replacingOccurrences(of: ">", with: "&gt;")
             .replacingOccurrences(of: "\"", with: "&quot;")
             .replacingOccurrences(of: "'", with: "&apos;")
+    }
+
+    // MARK: - Formula Evaluation (Phase 7A)
+
+    /// Evaluate a formula and return the result
+    /// - Parameters:
+    ///   - formula: Excel formula string (with or without leading =)
+    ///   - sheet: Sheet context for cell references
+    /// - Returns: The calculated value
+    /// - Throws: ExcelError if the formula is invalid
+    public func evaluateFormula(_ formula: String, in sheet: ExcelSheet) throws -> ExcelValue {
+        return try formulaEvaluator.evaluate(formula, in: sheet)
+    }
+
+    /// Clear the formula evaluation cache (call when cell values change)
+    public func clearFormulaCache() {
+        formulaEvaluator.clearCache()
     }
 }
 
