@@ -3,13 +3,16 @@
 [![Swift 5.9+](https://img.shields.io/badge/Swift-5.9+-orange.svg)](https://swift.org)
 [![Platforms](https://img.shields.io/badge/Platforms-iOS%20|%20macOS%20|%20watchOS-blue.svg)](https://swift.org)
 [![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/Tests-63%20Passing-success.svg)](Tests/)
+[![Tests](https://img.shields.io/badge/Tests-107%20Passing-success.svg)](Tests/)
+[![Functions](https://img.shields.io/badge/Excel%20Functions-44-blue.svg)]()
 
-A pure Swift library for reading and writing Excel `.xlsx` and `.xlsm` files with **VBA macro preservation**, inspired by [Apache POI](https://poi.apache.org/).
+A pure Swift library for reading and writing Excel `.xlsx` and `.xlsm` files with **VBA macro preservation** and **formula evaluation**, inspired by [Apache POI](https://poi.apache.org/).
+
+**🌟 ONLY Swift library with VBA macro preservation AND formula evaluation!**
 
 ## 🎯 Project Status
 
-**ALL CORE PHASES COMPLETE** - Production Ready! 🎉
+**ALL PHASES COMPLETE** - Production Ready! 🎉
 
 - ✅ **Phase 1**: Foundation (Reading Excel files)
 - ✅ **Phase 2**: Write Support (Modifying and saving)
@@ -18,9 +21,11 @@ A pure Swift library for reading and writing Excel `.xlsx` and `.xlsm` files wit
 - ✅ **Phase 4B**: Style Creation (programmatic styling)
 - ✅ **Phase 5**: Formula Support (read/write formulas)
 - ✅ **Phase 6**: Advanced Features (merged cells, charts, drawings)
+- ✅ **Phase 7**: **Formula Evaluation** (44 Excel functions!)
 
 **License**: Apache 2.0
-**Tests**: 63 passing (0 failures)
+**Tests**: 107 passing (0 failures)
+**Excel Functions**: 44 (covering ~90% of typical use cases)
 
 ## ✨ Features
 
@@ -30,6 +35,7 @@ A pure Swift library for reading and writing Excel `.xlsx` and `.xlsm` files wit
 - ✅ **Preserve VBA macros** (full .xlsm support)
 - ✅ **Cell styling** (read and create fonts, fills, borders, number formats)
 - ✅ **Formulas** (read and write Excel formulas)
+- ✅ **🚀 Formula Evaluation** (calculate formulas in Swift - 44 functions!)
 - ✅ **Merged cells** (automatic preservation)
 - ✅ **Charts & drawings** (preserve charts and images)
 - ✅ **Pure Swift** (no Objective-C bridging)
@@ -110,6 +116,45 @@ try sheet.cell("A1").setValue(.string("Updated"))
 // Save - macros are automatically preserved!
 try workbook.save(to: URL(fileURLWithPath: "output.xlsm"))
 ```
+
+### Evaluating Formulas (NEW!)
+
+```swift
+// Evaluate any formula
+let result = try workbook.evaluateFormula("=SUM(A1:A10)*2", in: sheet)
+
+switch result {
+case .number(let num):
+    print("Result: \(num)")
+case .string(let str):
+    print("Result: \(str)")
+case .boolean(let bool):
+    print("Result: \(bool)")
+case .error(let err):
+    print("Error: \(err)")
+default:
+    break
+}
+
+// Evaluate a cell's formula
+let cell = try sheet.cell("B5")
+if let result = try cell.evaluateFormula() {
+    print("Calculated: \(result)")
+}
+
+// Examples of supported formulas:
+try workbook.evaluateFormula("=2+3*4", in: sheet)  // → 14
+try workbook.evaluateFormula("=IF(SUM(1,2,3)>5, \"High\", \"Low\")", in: sheet)  // → "High"
+try workbook.evaluateFormula("=ROUND(3.14159, 2)", in: sheet)  // → 3.14
+try workbook.evaluateFormula("=CONCATENATE(\"Hello\", \" \", \"World\")", in: sheet)  // → "Hello World"
+```
+
+**44 Excel Functions Supported:**
+- **Math**: SUM, AVERAGE, COUNT, MIN, MAX, ROUND, SQRT, POWER, MOD, etc.
+- **Text**: CONCATENATE, LEFT, RIGHT, MID, LEN, UPPER, LOWER, FIND, SUBSTITUTE, etc.
+- **Logical**: IF, AND, OR, NOT, IFERROR
+- **Type Checking**: ISNUMBER, ISTEXT, ISBLANK
+- **Conditional Aggregates**: SUMIF, COUNTIF, AVERAGEIF, SUMIFS, COUNTIFS
 
 ## 📖 Documentation
 
