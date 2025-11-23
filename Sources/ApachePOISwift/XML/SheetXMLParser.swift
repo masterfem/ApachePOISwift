@@ -25,6 +25,7 @@ class SheetXMLParser: NSObject, XMLParserDelegate {
     private var currentFormula: String?
     private var currentElement = ""
     private var currentText = ""
+    private var isParsingInlineString = false
 
     /// Parse sheet XML data
     /// - Parameter data: XML data from xl/worksheets/sheetN.xml
@@ -70,8 +71,16 @@ class SheetXMLParser: NSObject, XMLParserDelegate {
             currentValue = nil
             currentFormula = nil
             currentText = ""
+            isParsingInlineString = false
         } else if elementName == "v" || elementName == "f" {
             // Value or formula element
+            currentText = ""
+        } else if elementName == "is" {
+            // Inline string element: <is><t>text</t></is>
+            isParsingInlineString = true
+            currentText = ""
+        } else if elementName == "t" && isParsingInlineString {
+            // Text element inside inline string
             currentText = ""
         }
     }
@@ -92,6 +101,12 @@ class SheetXMLParser: NSObject, XMLParserDelegate {
         } else if elementName == "f" {
             // End of formula element
             currentFormula = currentText.trimmingCharacters(in: .whitespacesAndNewlines)
+        } else if elementName == "t" && isParsingInlineString {
+            // End of text element in inline string
+            currentValue = currentText.trimmingCharacters(in: .whitespacesAndNewlines)
+        } else if elementName == "is" {
+            // End of inline string element
+            isParsingInlineString = false
         } else if elementName == "c" {
             // End of cell - store cell data
             if !currentCellReference.isEmpty {
