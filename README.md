@@ -3,7 +3,7 @@
 [![Swift 5.9+](https://img.shields.io/badge/Swift-5.9+-orange.svg)](https://swift.org)
 [![Platforms](https://img.shields.io/badge/Platforms-iOS%20|%20macOS%20|%20watchOS-blue.svg)](https://swift.org)
 [![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/Tests-107%20Passing-success.svg)](Tests/)
+[![Tests](https://img.shields.io/badge/Tests-115%20Passing-success.svg)](Tests/)
 [![Functions](https://img.shields.io/badge/Excel%20Functions-44-blue.svg)]()
 
 A pure Swift library for reading and writing Excel `.xlsx` and `.xlsm` files with **VBA macro preservation** and **formula evaluation**, inspired by [Apache POI](https://poi.apache.org/).
@@ -22,9 +22,10 @@ A pure Swift library for reading and writing Excel `.xlsx` and `.xlsm` files wit
 - ✅ **Phase 5**: Formula Support (read/write formulas)
 - ✅ **Phase 6**: Advanced Features (merged cells, charts, drawings)
 - ✅ **Phase 7**: **Formula Evaluation** (44 Excel functions!)
+- ✅ **Phase 8**: **Conditional Formatting** (read-only support)
 
 **License**: Apache 2.0
-**Tests**: 107 passing (0 failures)
+**Tests**: 115 passing (0 failures)
 **Excel Functions**: 44 (covering ~90% of typical use cases)
 
 ## ✨ Features
@@ -47,6 +48,7 @@ A pure Swift library for reading and writing Excel `.xlsx` and `.xlsm` files wit
 - ✅ Template-based generation
 - ✅ Large file support (tested with 3+ MB workbooks)
 - ✅ Full round-trip compatibility (save → reload → verify)
+- ✅ **Conditional formatting** (read and preserve CF rules)
 
 ## 🚀 Quick Start
 

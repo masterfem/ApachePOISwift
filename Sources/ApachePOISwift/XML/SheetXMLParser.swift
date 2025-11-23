@@ -21,6 +21,7 @@ struct CellData {
 struct SheetData {
     let cells: [String: CellData]
     let mergedCells: [String]  // Array of merged cell ranges (e.g., ["A1:B2", "C3:D5"])
+    let conditionalFormattingAreas: [ConditionalFormattingArea]  // CF areas (Phase 8)
 }
 
 /// Parses Excel worksheet XML files (sheet1.xml, sheet2.xml, etc.)
@@ -38,7 +39,7 @@ class SheetXMLParser: NSObject, XMLParserDelegate {
 
     /// Parse sheet XML data
     /// - Parameter data: XML data from xl/worksheets/sheetN.xml
-    /// - Returns: SheetData containing cells and merged cell ranges
+    /// - Returns: SheetData containing cells, merged cell ranges, and conditional formatting
     /// - Throws: ExcelError if parsing fails
     func parse(data: Data) throws -> SheetData {
         cells = [:]
@@ -61,7 +62,18 @@ class SheetXMLParser: NSObject, XMLParserDelegate {
             throw ExcelError.parsingError("Sheet: Unknown parsing error")
         }
 
-        return SheetData(cells: cells, mergedCells: mergedCells)
+        // Parse conditional formatting (Phase 8)
+        var conditionalFormattingAreas: [ConditionalFormattingArea] = []
+        if let xmlString = String(data: data, encoding: .utf8) {
+            let cfParser = ConditionalFormattingParser()
+            conditionalFormattingAreas = cfParser.parse(xmlString)
+        }
+
+        return SheetData(
+            cells: cells,
+            mergedCells: mergedCells,
+            conditionalFormattingAreas: conditionalFormattingAreas
+        )
     }
 
     // MARK: - XMLParserDelegate

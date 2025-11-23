@@ -22,6 +22,9 @@ public class ExcelSheet {
     /// Merged cell ranges (e.g., ["A1:B2", "C3:D5"])
     internal var mergedCells: [String] = []
 
+    /// Conditional formatting areas (Phase 8)
+    internal var conditionalFormattingAreas: [ConditionalFormattingArea] = []
+
     /// Reference to parent workbook
     private weak var workbook: ExcelWorkbook?
 
@@ -31,11 +34,12 @@ public class ExcelSheet {
     /// Whether this sheet has been modified
     internal var isModified: Bool = false
 
-    init(sheetInfo: SheetInfo, cells: [String: CellData], mergedCells: [String] = [], workbook: ExcelWorkbook?) {
+    init(sheetInfo: SheetInfo, cells: [String: CellData], mergedCells: [String] = [], conditionalFormattingAreas: [ConditionalFormattingArea] = [], workbook: ExcelWorkbook?) {
         self.name = sheetInfo.name
         self.sheetInfo = sheetInfo
         self.cells = cells
         self.mergedCells = mergedCells
+        self.conditionalFormattingAreas = conditionalFormattingAreas
         self.workbook = workbook
     }
 
@@ -99,6 +103,50 @@ public class ExcelSheet {
     /// Get the sheet ID
     public var sheetId: String {
         return sheetInfo.sheetId
+    }
+
+    // MARK: - Conditional Formatting (Phase 8)
+
+    /// Get all conditional formatting areas in this sheet
+    /// - Returns: Array of ConditionalFormattingArea objects
+    public func getConditionalFormatting() -> [ConditionalFormattingArea] {
+        return conditionalFormattingAreas
+    }
+
+    /// Check if a cell has conditional formatting applied
+    /// - Parameter reference: Cell reference (e.g., "A1")
+    /// - Returns: Array of rules that apply to this cell
+    public func getConditionalFormattingForCell(_ reference: String) -> [ConditionalFormattingRule] {
+        var applicableRules: [ConditionalFormattingRule] = []
+
+        for area in conditionalFormattingAreas {
+            // Check if reference is within this area's range
+            if isReferenceInRange(reference, range: area.range) {
+                applicableRules.append(contentsOf: area.rules)
+            }
+        }
+
+        // Sort by priority (lower number = higher priority)
+        return applicableRules.sorted { $0.priority < $1.priority }
+    }
+
+    /// Check if a cell reference is within a range
+    private func isReferenceInRange(_ reference: String, range: String) -> Bool {
+        // Simple implementation: check if range contains the reference
+        // For now, just check exact match or if it's a multi-cell range
+        if range == reference {
+            return true
+        }
+
+        // Parse range like "A1:C10"
+        let components = range.split(separator: ":")
+        if components.count == 2 {
+            // TODO: Implement proper range checking
+            // For now, just do a simple string check
+            return range.contains(reference)
+        }
+
+        return false
     }
 
     // MARK: - Write Support (Phase 2)

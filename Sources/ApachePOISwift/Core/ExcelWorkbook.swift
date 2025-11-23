@@ -117,6 +117,7 @@ public class ExcelWorkbook {
                 sheetInfo: sheetInfo,
                 cells: parsedData.cells,
                 mergedCells: parsedData.mergedCells,
+                conditionalFormattingAreas: parsedData.conditionalFormattingAreas,
                 workbook: self
             )
             sheets.append(sheet)
