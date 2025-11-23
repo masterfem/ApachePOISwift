@@ -421,6 +421,24 @@ public class ExcelCell {
         )
     }
 
+    // MARK: - Formula Support (Phase 5)
+
+    /// Set a formula for this cell
+    /// - Parameter formula: The Excel formula (without leading '=')
+    /// - Note: Excel will calculate the value when the file is opened
+    ///
+    /// Example:
+    /// ```swift
+    /// cell.setFormula("SUM(A1:A10)")
+    /// cell.setFormula("IF(B5>100,\"High\",\"Low\")")
+    /// cell.setFormula("VLOOKUP(A1,Sheet2!A:B,2,FALSE)")
+    /// ```
+    public func setFormula(_ formula: String) {
+        setFormulaValue(formula)
+        isModified = true
+        sheet?.markAsModified()
+    }
+
     /// Set a formula
     private func setFormulaValue(_ formula: String) {
         cellData = CellData(
